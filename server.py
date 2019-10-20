@@ -15,6 +15,7 @@ requestsReceived = 0
 serverStartedSince = datetime.datetime.now()
 
 # MARK: Classes definitions
+# ********************************** ThreadedServer **********************************
 class ThreadedServer(object):
     # MARK: Constructor
     def __init__(self, ip, port):
@@ -75,7 +76,9 @@ class ThreadedServer(object):
         # Close connection when user sends a CLOSE signal
         clientConnection.close()
         print("Client disconnected from IP %s"%(clientAddress[0]))
+# ********************************** ThreadedServer **********************************
 
+# ********************************** MulticastReceiver **********************************
 class MulticastReceiver(object):
     # MARK: Constructor
     def __init__(self, ip, port, ip_group):
@@ -124,36 +127,49 @@ class MulticastReceiver(object):
 
                 # Reply client
                 self.serverSocket.sendto(response, clientAddress)
-
-        print("Client disconnected from IP %s"%(clientAddress[0]))
+# ********************************** MulticastReceiver **********************************
 
 # MARK: Functions
+# ********************************** findSensorsOnTheInternet **********************************
 def findSensorsOnTheInternet(ip, port):
 	try:
-		serverConnection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		serverConnection.settimeout(TIMEOUT)
+		sensorConnection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		sensorConnection.settimeout(TIMEOUT)
 		# Set the time-to-live for messages to 1 so they do not go past the
 		# local network segment.
 		ttl = struct.pack('b', 1)
-		serverConnection.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+		sensorConnection.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
 	except socket.error as e:
 		print("Failed to create socket: %s"%(e))
 		sys.exit()
 	
-	# Send a message to server
-	message = raw_input("Enter a message: ")
-	serverConnection.sendto(getProtoMessage(message), (ip, port))
+	# Send a message to sensor
+	sensorConnection.sendto(generateSensorFinderMessage(), (ip, port))
 
 	# Receive a response
-	response, server = serverConnection.recvfrom(BUFFSIZE)
-	print ("SERVER SAID: %s"%(parseMessage(response)))
+	response, sensor = sensorConnection.recvfrom(BUFFSIZE)
+	print ("SENSOR SAID: %s"%(parseMessage(response)))
 
-	stayInTouch, handledResponse = handleResponse(response)
-	# TODO ignore handledResponse unless you need to do smt
+	saveSensorIPAndPort(response)
 
 	# Close connection
-	serverConnection.close()
-	print ("You have just left the connection.")
+	sensorConnection.close()
+
+def saveSensorIPAndPort(serialized_message_string):
+	# TODO
+    message = message_pb2.Message()
+    message.ParseFromString(serialized_message_string)
+    return message
+
+def generateSensorFinderMessage():
+    # TODO
+    message = message_pb2.Message()
+    message.body.description = "description"
+    message.type = message_pb2.Message.MessageType.MULTICAST_SENSOR_FINDER
+    message.sender.ip = "localhost"
+    message.sender.port = 5050
+    return message.SerializeToString()
+# ********************************** findSensorsOnTheInternet **********************************
 
 def incrementNumberOfConnections():
     # Increment number of received connections
@@ -242,8 +258,13 @@ def parseMessage(serialized_message_string):
 
 # MARK: Init main()
 def main():
-    MulticastReceiver("" , MULTICAST_GROUP_PORT, MULTICAST_GROUP_IP).waitForSensorFinderSignal()
+    # 1 cli-svr
+    # findSensorsOnTheInternet(MULTICAST_GROUP_IP, MULTICAST_GROUP_PORT)
 
+    # 2 svr-cli
+    # MulticastReceiver("" , MULTICAST_GROUP_PORT, MULTICAST_GROUP_IP).waitForSensorFinderSignal()
+
+    # 3 svr-cli
     try:
         ip = raw_input("Enter an ip address to this server (Ex.: 'localhost', '127.0.0.1', ''): ")
         port = int(raw_input("Enter a port: "))
@@ -251,6 +272,6 @@ def main():
     except ValueError as e:
         print(e)
 
-print("\n** Welcome to my socket app! Send a message using TCP/UDP sockets! **\n\n")
+print("\n** Welcome to my SocketProtobuf app! Send a message using Protobuffer in TCP/UDP mode! **\n\n")
 main()
 print("** This is the end! **")
