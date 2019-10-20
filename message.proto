@@ -1,0 +1,51 @@
+syntax = "proto2";
+
+package connection;
+
+option java_package = "br.gov.ce.sspds.voicerecognition.connection";
+option java_outer_classname = "MessageProto";
+
+message Message {
+    required Body body = 1;
+    required MessageType type = 2 [default = DEFAULT];
+    optional Sender sender = 3;
+
+    message Body {
+        required string description = 1;
+        optional Object object = 2;
+    }
+
+    enum MessageType {
+        CHANGE_SENSOR_STATUS_REQUEST = 1; // Used by app and server to request sensor status
+        CHANGE_SENSOR_STATUS_RESPONSE = 2; // Used by sensor to send sensor status
+       
+        READ_SENSOR_DATA_REQUEST = 3; // Used by app and server to request sensor data
+        READ_SENSOR_DATA_RESPONSE = 4; // Used by sensor to send sensor data
+       
+        MULTICAST_SENSOR_FINDER = 5; // Used by server to find sensors on the internet
+        MULTICAST_SENSOR_FINDER_ACK = 6; // Used by sensor to show up it is alive
+      
+        MULTICAST_SERVER_FINDER = 7; // Used by sensor to find server on the internet
+        MULTICAST_SERVER_FINDER_ACK = 8; // Used by server to show up it is alive
+
+        UPTIME_REQUEST = 9; // Used by app to get datetime since server's up
+        UPTIME_RESPONSE = 10; // Used by server to send datetime since it's up
+
+        REQNUM_REQUEST = 11; // Used by app to get the number of requests since server's up
+        REQNUM_RESPONSE = 12; // Used by server to send the number of requests since it's up
+
+        CLOSE_CONNECTION_REQUEST = 13; // Used by app to attempt closing connection
+        CLOSE_CONNECTION_ACK = 14; // Used by server to acknowledge
+
+        DEFAULT = 15;
+    }
+
+    message Sender {
+        optional string ip = 1;
+        optional int32 port = 2;
+    }
+
+    message Object {
+        // TODO
+    }
+}
